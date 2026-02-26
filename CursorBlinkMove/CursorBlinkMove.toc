@@ -1,0 +1,47 @@
+## Interface: 120001
+## Title: CursorBlinkMove
+## IconTexture: Interface\AddOns\CursorBlinkMove\CBM_WoW_Icon_final
+## Author: LordTyberias @GitHub/Tyberîas @Die Aldor-EU
+## Version: 1.0
+
+## Notes: Makes the cursor blink when the mouse is moved quickly so you can find it again.
+## Notes-deDE: Läßt den Cursor blinken wenn die Maus schnell bewegt wird um ihn wieder zu finden.
+## Notes-frFR: Fait clignoter le curseur lorsque la souris est déplacée rapidement afin de le retrouver facilement.
+## Notes-esES: Hace que el cursor parpadee cuando mueves el ratón rápidamente para poder encontrarlo de nuevo.
+## Notes-esMX: Hace que el cursor parpadee cuando mueves el mouse rápidamente para poder encontrarlo de nuevo.
+## Notes-itIT: Fa lampeggiare il cursore quando muovi rapidamente il mouse per ritrovarlo facilmente.
+## Notes-ptBR: Faz o cursor piscar quando o mouse é movido rapidamente para que você possa encontrá-lo novamente.
+## Notes-ruRU: Заставляет курсор мигать при быстром движении мыши, чтобы его было легче найти.
+## Notes-koKR: 마우스를 빠르게 움직이면 커서가 깜빡여 다시 쉽게 찾을 수 있습니다.
+## Notes-zhCN: 当鼠标快速移动时让光标闪烁，方便重新找到它。
+## Notes-zhTW: 當滑鼠快速移動時讓游標閃爍，方便再次找到它。
+
+## Description: Makes the cursor blink when the mouse is moved quickly so you can find it again.
+## Description-deDE: Läßt den Cursor blinken wenn die Maus schnell bewegt wird um ihn wieder zu finden.
+## Description-frFR: Fait clignoter le curseur lorsque la souris est déplacée rapidement afin de le retrouver facilement.
+## Description-esES: Hace que el cursor parpadee cuando mueves el ratón rápidamente para poder encontrarlo de nuevo.
+## Description-esMX: Hace que el cursor parpadee cuando mueves el mouse rápidamente para poder encontrarlo de nuevo.
+## Description-itIT: Fa lampeggiare il cursore quando muovi rapidamente il mouse per ritrovarlo facilmente.
+## Description-ptBR: Faz o cursor piscar quando o mouse é movido rapidamente para que você possa encontrá-lo novamente.
+## Description-ruRU: Заставляет курсор мигать при быстром движении мыши, чтобы его было легче найти.
+## Description-koKR: 마우스를 빠르게 움직이면 커서가 깜빡여 다시 쉽게 찾을 수 있습니다.
+## Description-zhCN: 当鼠标快速移动时让光标闪烁，方便重新找到它。
+## Description-zhTW: 當滑鼠快速移動時讓游標閃爍，方便再次找到它。
+
+## SavedVariables: CursorBlinkMoveDB
+
+## Category-enUS: User Interface
+## Category-deDE: Benutzerinterface
+## Category-esES: Interfaz de usuario
+## Category-esMX: Interfaz de usuario
+## Category-frFR: Interface utilisateur
+## Category-itIT: Interfaccia utente
+## Category-koKR: 사용자 인터페이스
+## Category-ptBR: Interface do usuário
+## Category-ruRU: Интерфейс пользователя
+## Category-zhCN: 用户界面
+## Category-zhTW: 使用者介面
+
+Localization.lua
+CursorBlinkMove.lua
+CursorBlinkMove_Options.lua
