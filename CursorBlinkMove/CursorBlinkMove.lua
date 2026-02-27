@@ -31,7 +31,9 @@ local function applyDefaults()
     if CursorBlinkMoveDB[k] == nil then
       if type(v) == "table" then
         CursorBlinkMoveDB[k] = {}
-        for kk, vv in pairs(v) do CursorBlinkMoveDB[k][kk] = vv end
+        for kk, vv in pairs(v) do
+          CursorBlinkMoveDB[k][kk] = vv
+        end
       else
         CursorBlinkMoveDB[k] = v
       end
@@ -92,9 +94,8 @@ end
 -- ===== State =====
 local lastX, lastY, lastT
 
--- HARD SUSPEND: 2s lang NUR tracken, niemals triggern (Login/Alt-Tab/Fokus)
-local SUSPEND_SECONDS = 2.0
-local suspendUntil = GetTime() + SUSPEND_SECONDS
+-- Ignore window after login/enter world (prevents false trigger)
+local ignoreUntil = GetTime() + 1.0
 
 -- Filters against cursor "teleport" on focus changes / alt-tab / loading
 local MAX_DT_RESET = 0.35      -- if dt bigger than this -> reset tracking
@@ -135,77 +136,13 @@ local function ResetTracking(now, x, y, reason)
   dprint("ResetTracking:", reason or "unknown")
 end
 
-local function StartSuspend(reason, seconds)
-  seconds = tonumber(seconds) or SUSPEND_SECONDS
-  suspendUntil = GetTime() + seconds
-
-  -- kill any blink immediately
-  activeUntil = 0
-  nextToggleAt = 0
-  glowOn = false
-  lastActiveState = false
-  stopGlow()
-
-  -- do NOT nil lastT; we want continuous tracking to avoid a "first-frame speed spike"
-  dprint("SUSPEND:", reason or "unknown", "for", seconds, "s")
-end
-
 local ev = CreateFrame("Frame")
 ev:RegisterEvent("PLAYER_ENTERING_WORLD")
-ev:RegisterEvent("PLAYER_LEAVING_WORLD")
-ev:RegisterEvent("PLAYER_FLAGS_CHANGED")        -- can fire on focus-like changes
-ev:RegisterEvent("CVAR_UPDATE")                 -- catches some focus/input changes
-ev:RegisterEvent("UI_SCALE_CHANGED")
-ev:RegisterEvent("DISPLAY_SIZE_CHANGED")
--- Some clients fire this; only register if the client knows the event
-if type(C_EventUtils) == "table" and type(C_EventUtils.IsEventValid) == "function" then
-  if C_EventUtils.IsEventValid("APPLICATION_FOCUS_CHANGED") then
-    ev:RegisterEvent("APPLICATION_FOCUS_CHANGED")
-  end
-elseif type(EventRegistry) == "table" and type(EventRegistry.IsEventValid) == "function" then
-  if EventRegistry:IsEventValid("APPLICATION_FOCUS_CHANGED") then
-    ev:RegisterEvent("APPLICATION_FOCUS_CHANGED")
-  end
-end
-
-ev:SetScript("OnEvent", function(_, event, ...)
-  if event == "PLAYER_ENTERING_WORLD" then
-    StartSuspend("PLAYER_ENTERING_WORLD", 2.0)
-    return
-  end
-
-  if event == "PLAYER_LEAVING_WORLD" then
-    StartSuspend("PLAYER_LEAVING_WORLD", 2.0)
-    return
-  end
-
-  if event == "DISPLAY_SIZE_CHANGED" or event == "UI_SCALE_CHANGED" then
-    StartSuspend(event, 1.25)
-    return
-  end
-
-  if event == "PLAYER_FLAGS_CHANGED" then
-    StartSuspend("PLAYER_FLAGS_CHANGED", 0.75)
-    return
-  end
-
-  if event == "APPLICATION_FOCUS_CHANGED" then
-    local hasFocus = ...
-    if hasFocus == false then
-      StartSuspend("FOCUS_LOST", 2.0)
-    else
-      StartSuspend("FOCUS_GAINED", 2.0)
-    end
-    return
-  end
-
-  if event == "CVAR_UPDATE" then
-    local cvar = ...
-    if cvar == "gxMaximize" or cvar == "gxWindow" or cvar == "gxFullscreen" or cvar == "useCursor" then
-      StartSuspend("CVAR_UPDATE:" .. tostring(cvar), 1.25)
-    end
-    return
-  end
+ev:SetScript("OnEvent", function()
+  ignoreUntil = GetTime() + 1.0
+  lastT = nil
+  stopGlow()
+  dprint("Ignore window start (PLAYER_ENTERING_WORLD)")
 end)
 
 -- Exposed helper for options UI: trigger blinking for X seconds
@@ -229,26 +166,11 @@ driver:SetScript("OnUpdate", function(_, elapsed)
   local now = GetTime()
   local x, y = getCursorXY()
 
-  -- Some focus changes return 0/0 briefly -> suspend + keep tracking clean
-  if (x == 0 and y == 0) then
-    StartSuspend("CURSOR_0_0", 2.0)
-    -- keep last* consistent: treat as "no valid sample"
-    return
-  end
-
   glow:ClearAllPoints()
   glow:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
 
-  -- init tracking
   if not lastT then
     lastX, lastY, lastT = x, y, now
-    return
-  end
-
-  -- ALWAYS track; but while suspended we NEVER trigger blinking
-  if now < suspendUntil then
-    lastX, lastY, lastT = x, y, now
-    if glow:IsShown() then stopGlow() end
     return
   end
 
@@ -256,27 +178,26 @@ driver:SetScript("OnUpdate", function(_, elapsed)
   local speed = 0
   local dist = 0
 
-  -- If dt is extremely small, speed becomes nonsense (can happen on focus changes)
-  if dt < 0.005 then
-    ResetTracking(now, x, y, ("dt_too_small dt=%.4f"):format(dt))
+  -- Ignore window after entering world (login/reload/zone)
+  if now < ignoreUntil then
+    lastX, lastY, lastT = x, y, now
+    if glow:IsShown() then stopGlow() end
     return
   end
 
-  -- If dt is too large (game paused / loading / tabbed out), suspend instead of reset-to-trigger
+  -- If dt is too large (game paused / loading / tabbed out), reset tracking
   if dt <= 0 or dt > MAX_DT_RESET then
-    StartSuspend("dt_reset", 2.0)
-    lastX, lastY, lastT = x, y, now
+    ResetTracking(now, x, y, "dt_reset")
     return
   end
 
   local dx = x - lastX
   local dy = y - lastY
-  dist = math.sqrt(dx*dx + dy*dy)
+  dist = math.sqrt(dx * dx + dy * dy)
 
   -- Cursor teleport/jump filter (common on alt-tab / focus change)
   if dist >= JUMP_DIST and dt <= JUMP_DT_MAX then
-    StartSuspend(("jump_filter dist=%.0f dt=%.3f"):format(dist, dt), 2.0)
-    lastX, lastY, lastT = x, y, now
+    ResetTracking(now, x, y, ("jump_filter dist=%.0f dt=%.3f"):format(dist, dt))
     return
   end
 
@@ -284,7 +205,7 @@ driver:SetScript("OnUpdate", function(_, elapsed)
 
   if CursorBlinkMoveDB.debug and (now - lastDebugAt) >= CursorBlinkMoveDB.debugThrottle then
     lastDebugAt = now
-    dprint(("speed=%.0f px/s  threshold=%.0f  activeRemaining=%.2f"):format(
+    dprint(("speed=%.0f px/s threshold=%.0f activeRemaining=%.2f"):format(
       speed, CursorBlinkMoveDB.speedThreshold, math.max(0, activeUntil - now)
     ))
   end
@@ -368,7 +289,6 @@ SlashCmdList["CursorBlinkMove"] = function(msg)
 
   local prefix = "|cff00ff00" .. (L.ADDON_PREFIX or "CursorBlinkMove") .. "|r:"
 
-  -- NEW:
   -- /cbm              -> open options
   -- /cbm options      -> print command list
   -- /cbm settings     -> print command list
@@ -408,7 +328,9 @@ SlashCmdList["CursorBlinkMove"] = function(msg)
   end
 
   if cmd == "color" then
-    local r = clamp01(a); local g = clamp01(b); local bb = clamp01(c)
+    local r = clamp01(a)
+    local g = clamp01(b)
+    local bb = clamp01(c)
     CursorBlinkMoveDB.color.r, CursorBlinkMoveDB.color.g, CursorBlinkMoveDB.color.b, CursorBlinkMoveDB.color.a = r, g, bb, 1
     CursorBlinkMove_RefreshVisual()
     print(prefix, (L.CMD_COLOR_SET or "color ="), ("%.2f %.2f %.2f"):format(r, g, bb))
