@@ -1,4 +1,4 @@
-## Interface: 120001
+## Interface: 120001, 120005 
 ## Title: CursorBlinkMove
 ## IconTexture: Interface\AddOns\CursorBlinkMove\CBM_WoW_Icon_final
 ## Author: LordTyberias @GitHub/Tyberîas @Die Aldor-EU
